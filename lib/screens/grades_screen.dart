@@ -108,7 +108,7 @@ class GradesScreen extends StatelessWidget {
             ),
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
                 itemCount: grades.length,
                 itemBuilder: (context, index) {
                   final grade = grades[index];

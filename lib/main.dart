@@ -5,19 +5,14 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_dashboard_screen.dart';
 import 'screens/subjects_screen.dart';
-import 'screens/grades_screen.dart';
-import 'screens/profile_screen.dart';
-import 'widgets/bottom_navigation.dart';
-import 'utils/app_colors.dart';
+import 'screens/placeholder_screens.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   runApp(const EduVerseApp());
 }
 
@@ -31,26 +26,12 @@ class EduVerseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'Inter',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-        ),
         useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.white,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B7FE3)),
       ),
       home: const AppNavigator(),
     );
   }
-}
-
-enum AppScreen {
-  splash,
-  login,
-  register,
-  home,
-  subjects,
-  grades,
-  profile,
 }
 
 class AppNavigator extends StatefulWidget {
@@ -61,93 +42,212 @@ class AppNavigator extends StatefulWidget {
 }
 
 class _AppNavigatorState extends State<AppNavigator> {
-  AppScreen _currentScreen = AppScreen.splash;
-  bool _isAuthenticated = false;
+  String currentScreen = 'splash';
+  bool isAuthenticated = false;
+  String userRole = 'student';
+  Map<String, dynamic>? selectedSubject;
+  Map<String, dynamic>? selectedModule;
+  Map<String, dynamic>? selectedLesson;
+  Map<String, dynamic>? selectedAssignment;
+  Map<String, dynamic>? selectedQuiz;
+  Map<String, dynamic>? selectedStudent;
 
-  void _navigateToScreen(AppScreen screen) {
+  final List<String> teacherEmails = [
+    '@eduverse-teacher.com',
+    '@school-staff.edu',
+    'teacher@eduverse.com',
+    'admin@eduverse.com',
+  ];
+
+  bool isTeacherEmail(String email) {
+    return teacherEmails
+        .any((domain) => email.toLowerCase().contains(domain.toLowerCase()));
+  }
+
+  void handleSplashComplete() {
+    setState(() => currentScreen = 'login');
+  }
+
+  void handleLogin(String email) {
     setState(() {
-      _currentScreen = screen;
+      isAuthenticated = true;
+      userRole = isTeacherEmail(email) ? 'teacher' : 'student';
+      currentScreen = userRole == 'teacher' ? 'teacher-dashboard' : 'home';
     });
   }
 
-  void _handleLogin(String email) {
+  void handleRegister() {
     setState(() {
-      _isAuthenticated = true;
-      _currentScreen = AppScreen.home;
+      isAuthenticated = true;
+      currentScreen = 'home';
     });
   }
 
-  void _handleRegister() {
+  void handleLogout() {
     setState(() {
-      _isAuthenticated = true;
-      _currentScreen = AppScreen.home;
+      isAuthenticated = false;
+      currentScreen = 'login';
+      selectedSubject = null;
+      selectedModule = null;
+      selectedLesson = null;
+      selectedAssignment = null;
+      selectedQuiz = null;
+      selectedStudent = null;
     });
   }
 
-  void _handleLogout() {
+  void handleNavigate(String page, [dynamic data]) {
     setState(() {
-      _isAuthenticated = false;
-      _currentScreen = AppScreen.login;
+      if (page == 'subject-details' && data != null) selectedSubject = data;
+      if (page == 'module-workspace' && data != null) selectedModule = data;
+      if (page == 'lesson' && data != null) selectedLesson = data;
+      if (page == 'assignment-details' && data != null)
+        selectedAssignment = data;
+      if (page == 'quiz' && data != null) selectedQuiz = data;
+      if (page == 'teacher-student-profile' && data != null)
+        selectedStudent = data;
+      currentScreen = page;
     });
-  }
-
-  bool get _shouldShowBottomNav {
-    return _isAuthenticated &&
-        (_currentScreen == AppScreen.home ||
-            _currentScreen == AppScreen.subjects ||
-            _currentScreen == AppScreen.grades ||
-            _currentScreen == AppScreen.profile);
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget screen;
+
+    switch (currentScreen) {
+      case 'splash':
+        screen = SplashScreen(onComplete: handleSplashComplete);
+        break;
+      case 'login':
+        screen = LoginScreen(
+          onLogin: handleLogin,
+          onNavigateToRegister: () =>
+              setState(() => currentScreen = 'register'),
+        );
+        break;
+      case 'register':
+        screen = RegisterScreen(
+          onRegister: handleRegister,
+          onNavigateToLogin: () => setState(() => currentScreen = 'login'),
+        );
+        break;
+      case 'home':
+        screen = HomeDashboard(onNavigate: handleNavigate);
+        break;
+      case 'subjects':
+        screen = SubjectsScreen(onNavigate: handleNavigate);
+        break;
+      case 'subject-details':
+        screen = SubjectDetailsScreen(
+          subject: selectedSubject!,
+          onBack: () => setState(() => currentScreen = 'subjects'),
+          onStartModule: (module) {
+            setState(() {
+              selectedModule = module;
+              currentScreen = 'module-workspace';
+            });
+          },
+        );
+        break;
+      case 'modules':
+        screen = ModulesScreen(onNavigate: handleNavigate);
+        break;
+      case 'module-workspace':
+        screen = ModuleWorkspace(
+          onBack: () => setState(() => currentScreen = 'subject-details'),
+          onNavigate: handleNavigate,
+        );
+        break;
+      case 'lesson':
+        screen = LessonScreen(
+          lesson: selectedLesson,
+          onBack: () => setState(() => currentScreen = 'module-workspace'),
+        );
+        break;
+      case 'assignments-list':
+        screen = AssignmentsListScreen(
+          onBack: () => setState(() => currentScreen = 'module-workspace'),
+          onNavigate: handleNavigate,
+        );
+        break;
+      case 'assignment-details':
+        screen = AssignmentDetailsScreen(
+          assignment: selectedAssignment!,
+          onBack: () => setState(() => currentScreen = 'assignments-list'),
+        );
+        break;
+      case 'quiz':
+        screen = QuizScreen(
+          quiz: selectedQuiz,
+          onBack: () => setState(() => currentScreen = 'module-workspace'),
+        );
+        break;
+      case 'pre-vr':
+        screen = PreVRScreen(onNavigate: handleNavigate);
+        break;
+      case 'vr-entry':
+        screen = VREntryScreen(onNavigate: handleNavigate);
+        break;
+      case 'grades':
+        screen = const GradesScreen();
+        break;
+      case 'profile':
+        screen = ProfileScreen(
+          onLogout: handleLogout,
+          onNavigate: handleNavigate,
+          userRole: userRole,
+        );
+        break;
+      case 'teacher-dashboard':
+        screen = TeacherDashboard(onNavigate: handleNavigate);
+        break;
+      case 'teacher-modules':
+        screen = TeacherModules(
+          onBack: () => setState(() => currentScreen = 'teacher-dashboard'),
+          onNavigate: handleNavigate,
+        );
+        break;
+      case 'teacher-create-lesson':
+        screen = TeacherCreateLesson(
+          onBack: () => setState(() => currentScreen = 'teacher-dashboard'),
+        );
+        break;
+      case 'teacher-create-assignment':
+        screen = TeacherCreateAssignment(
+          onBack: () => setState(() => currentScreen = 'teacher-dashboard'),
+        );
+        break;
+      case 'teacher-vr-management':
+        screen = TeacherVRManagement(
+          onBack: () => setState(() => currentScreen = 'teacher-dashboard'),
+        );
+        break;
+      case 'teacher-students':
+        screen = TeacherStudents(
+          onBack: () => setState(() => currentScreen = 'teacher-dashboard'),
+          onNavigate: handleNavigate,
+        );
+        break;
+      case 'teacher-student-profile':
+        screen = TeacherStudentProfile(
+          studentData: selectedStudent!,
+          onBack: () => setState(() => currentScreen = 'teacher-students'),
+        );
+        break;
+      default:
+        screen = SplashScreen(onComplete: handleSplashComplete);
+    }
+
     return Scaffold(
-      body: Stack(
-        children: [
-          _buildCurrentScreen(),
-          if (_shouldShowBottomNav)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: BottomNavigation(
-                currentScreen: _currentScreen,
-                onNavigate: _navigateToScreen,
-              ),
-            ),
-        ],
+      body: Container(
+        constraints: const BoxConstraints(maxWidth: 428),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 428),
+            child: screen,
+          ),
+        ),
       ),
     );
-  }
-
-  Widget _buildCurrentScreen() {
-    switch (_currentScreen) {
-      case AppScreen.splash:
-        return SplashScreen(
-          onComplete: () => _navigateToScreen(AppScreen.login),
-        );
-      case AppScreen.login:
-        return LoginScreen(
-          onLogin: _handleLogin,
-          onNavigateToRegister: () => _navigateToScreen(AppScreen.register),
-        );
-      case AppScreen.register:
-        return RegisterScreen(
-          onRegister: _handleRegister,
-          onNavigateToLogin: () => _navigateToScreen(AppScreen.login),
-        );
-      case AppScreen.home:
-        return HomeDashboardScreen(
-          onNavigate: _navigateToScreen,
-        );
-      case AppScreen.subjects:
-        return const SubjectsScreen();
-      case AppScreen.grades:
-        return const GradesScreen();
-      case AppScreen.profile:
-        return ProfileScreen(
-          onLogout: _handleLogout,
-        );
-    }
   }
 }
