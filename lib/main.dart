@@ -7,6 +7,8 @@ import 'screens/home_dashboard_screen.dart';
 import 'screens/subjects_screen.dart';
 import 'screens/grades_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/vr_entry_screen.dart';
+import 'screens/modules_screen.dart';
 import 'widgets/bottom_navigation.dart';
 import 'utils/app_colors.dart';
 
@@ -49,8 +51,10 @@ enum AppScreen {
   register,
   home,
   subjects,
+  modules,
   grades,
   profile,
+  vrEntry,
 }
 
 class AppNavigator extends StatefulWidget {
@@ -142,11 +146,19 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
       case AppScreen.subjects:
         return const SubjectsScreen();
+      case AppScreen.modules:
+        return ModulesScreen(
+          onBack: () => _navigateToScreen(AppScreen.home),
+        );
       case AppScreen.grades:
         return const GradesScreen();
       case AppScreen.profile:
         return ProfileScreen(
           onLogout: _handleLogout,
+        );
+      case AppScreen.vrEntry:
+        return VREntryScreen(
+          onBack: () => _navigateToScreen(AppScreen.home),
         );
     }
   }
